@@ -415,6 +415,63 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  // Called by the post form (via /integrations/function) every time it opens,
+  // TikTok requires the latest creator info to be shown before each post.
+  async creatorInfo(accessToken: string) {
+    let json: any;
+    try {
+      json = await (
+        await fetch(
+          'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        )
+      ).json();
+    } catch (err) {
+      return {
+        error: {
+          code: 'creator_info_unavailable',
+          message: 'Could not reach TikTok, please try again later.',
+        },
+      };
+    }
+
+    const code = json?.error?.code;
+    if (code === 'access_token_invalid') {
+      throw new RefreshToken(
+        this.identifier,
+        JSON.stringify(json),
+        '{}',
+        'Access token invalid'
+      );
+    }
+
+    if (code && code !== 'ok') {
+      return {
+        error: { code, message: json?.error?.message || '' },
+      };
+    }
+
+    const data = json?.data || {};
+    return {
+      nickname: data.creator_nickname as string | undefined,
+      username: data.creator_username as string | undefined,
+      avatarUrl: data.creator_avatar_url as string | undefined,
+      privacyLevelOptions: (data.privacy_level_options || []) as string[],
+      commentDisabled: !!data.comment_disabled,
+      duetDisabled: !!data.duet_disabled,
+      stitchDisabled: !!data.stitch_disabled,
+      maxVideoPostDurationSec: data.max_video_post_duration_sec as
+        | number
+        | undefined,
+    };
+  }
+
   // Single status check for a publish_id, no loops and no timers: `post` returns
   // a `pending` PostResponse right after the upload, and the post workflow polls
   // this method with durable timers, so a stuck/retried check can never re-run
@@ -531,8 +588,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
             ? { title: firstPost.message }
             : {}),
           ...(isPhoto ? { description: firstPost.message } : {}),
-          privacy_level:
-            firstPost.settings.privacy_level || 'PUBLIC_TO_EVERYONE',
+          privacy_level: firstPost.settings.privacy_level || 'SELF_ONLY',
           ...(isPhoto
             ? {}
             : { disable_duet: !this.assetBoolean(firstPost.settings.duet) }),
