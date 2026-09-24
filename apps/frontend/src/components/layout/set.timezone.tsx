@@ -21,6 +21,20 @@ export const newDayjs = (config?: ConfigType) => {
   return dayjs(config);
 };
 
+// Builds a dayjs instance anchored to the user's configured display timezone
+// (falls back to the browser's guessed timezone). Use this instead of
+// newDayjs()/dayjs() for anything that needs to render or bucket dates
+// according to the user's chosen timezone rather than the OS timezone.
+export const dayjsTz = (config?: ConfigType) => {
+  return dayjs.tz(config, getTimezone());
+};
+
+// Converts a known UTC instant (e.g. a post's publishDate coming from the
+// backend) into the user's configured display timezone.
+export const utcToTz = (config?: ConfigType) => {
+  return dayjs.utc(config).tz(getTimezone());
+};
+
 const SetTimezone: FC = () => {
   useEffect(() => {
     dayjs.utc = (config?: ConfigType, format?: string, strict?: boolean) => {

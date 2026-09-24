@@ -20,7 +20,10 @@ import isoWeek from 'dayjs/plugin/isoWeek';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { extend } from 'dayjs';
 import useCookie from 'react-use-cookie';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  newDayjs,
+  dayjsTz,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { expandPostsList, expandPosts } from '@gitroom/helpers/utils/posts.list.minify';
 extend(isoWeek);
@@ -111,7 +114,7 @@ export interface Integrations {
 
 // Helper function to get start and end dates based on display type
 function getDateRange(display: string, referenceDate?: string) {
-  const date = referenceDate ? newDayjs(referenceDate) : newDayjs();
+  const date = referenceDate ? dayjsTz(referenceDate) : dayjsTz();
 
   switch (display) {
     case 'day':
@@ -187,8 +190,8 @@ export const CalendarWeekProvider: FC<{
     const modifiedParams = new URLSearchParams({
       display: filters.display,
       customer: filters?.customer?.toString() || '',
-      startDate: newDayjs(filters.startDate).startOf('day').utc().format(),
-      endDate: newDayjs(filters.endDate).endOf('day').utc().format(),
+      startDate: dayjsTz(filters.startDate).startOf('day').utc().format(),
+      endDate: dayjsTz(filters.endDate).endOf('day').utc().format(),
     }).toString();
 
     const data = await (await fetch(`/posts?${modifiedParams}`)).json();

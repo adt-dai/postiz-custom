@@ -56,7 +56,12 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  newDayjs,
+  dayjsTz,
+  utcToTz,
+  getTimezone,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 
 // Extend dayjs with necessary plugins
@@ -117,9 +122,7 @@ const usePostActions = (onMutate?: () => void) => {
       const date = !isDuplicate
         ? null
         : (await (await fetch('/posts/find-slot')).json()).date;
-      const publishDate = dayjs
-        .utc(date || data.posts[0].publishDate)
-        .local();
+      const publishDate = utcToTz(date || data.posts[0].publishDate);
       const ExistingData = !isDuplicate
         ? ExistingDataContextProvider
         : Fragment;
@@ -309,7 +312,7 @@ export const DayView = () => {
                 .utc()
                 .startOf('day')
                 .add(option[0].time, 'minute')
-                .local()
+                .tz(getTimezone())
                 .format(isUSCitizen() ? 'hh:mm A' : 'LT')}
             </div>
             <div
@@ -326,7 +329,7 @@ export const DayView = () => {
                   getDate={currentDay
                     .startOf('day')
                     .add(option[0].time, 'minute')
-                    .local()}
+                    .tz(getTimezone())}
                 />
               </CalendarContext.Provider>
             </div>
@@ -346,7 +349,7 @@ export const WeekView = () => {
     dayjs.locale(currentLanguage);
 
     const days = [];
-    const weekStart = newDayjs(startDate);
+    const weekStart = dayjsTz(startDate);
     for (let i = 0; i < 7; i++) {
       const day = weekStart.add(i, 'day');
       days.push({
@@ -374,11 +377,11 @@ export const WeekView = () => {
               <div
                 className={clsx(
                   'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
-                  day.day === newDayjs().format('L') &&
+                  day.day === dayjsTz().format('L') &&
                     'text-newTableTextFocused'
                 )}
               >
-                {day.day === newDayjs().format('L') && (
+                {day.day === dayjsTz().format('L') && (
                   <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
                 )}
                 {day.day}
@@ -426,11 +429,10 @@ export const MonthView = () => {
   }, [i18next.resolvedLanguage]);
 
   const calendarDays = useMemo(() => {
-    const monthStart = newDayjs(startDate);
+    const monthStart = dayjsTz(startDate);
     const currentMonth = monthStart.month();
-    const currentYear = monthStart.year();
 
-    const startOfMonth = newDayjs(new Date(currentYear, currentMonth, 1));
+    const startOfMonth = monthStart.startOf('month');
 
     // Calculate the day offset for Monday (isoWeekday() returns 1 for Monday)
     const startDayOfWeek = startOfMonth.isoWeekday(); // 1 for Monday, 7 for Sunday
@@ -475,7 +477,7 @@ export const MonthView = () => {
               className="text-center items-center justify-center flex"
             >
               <CalendarColumn
-                getDate={newDayjs(date.day).endOf('day')}
+                getDate={date.day.endOf('day')}
                 randomHour={true}
               />
             </div>
@@ -505,7 +507,7 @@ export const ListView = () => {
   const groupedPosts = useMemo(() => {
     const groups: { [key: string]: any[] } = {};
     listPosts.forEach((post) => {
-      const dateKey = newDayjs(post.publishDate).local().format('YYYY-MM-DD');
+      const dateKey = utcToTz(post.publishDate).format('YYYY-MM-DD');
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -544,7 +546,7 @@ export const ListView = () => {
                   key={post.id}
                   display="day"
                   isBeforeNow={false}
-                  date={newDayjs(post.publishDate)}
+                  date={utcToTz(post.publishDate)}
                   state={post.state}
                   statistics={openStatistics(post.id)}
                   missingRelease={openMissingRelease(post.id)}
@@ -607,7 +609,7 @@ export const CalendarColumn: FC<{
   const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease } = usePostActions();
   const postList = useMemo(() => {
     return posts.filter((post) => {
-      const pList = dayjs.utc(post.publishDate).local();
+      const pList = utcToTz(post.publishDate);
       const check =
         display === 'day'
           ? pList.format('YYYY-MM-DD HH:mm') ===
@@ -807,8 +809,8 @@ export const CalendarColumn: FC<{
             randomHour
               ? getDate.hour(Math.floor(Math.random() * 24))
               : getDate.format('YYYY-MM-DDTHH:mm:ss') ===
-                newDayjs().startOf('hour').format('YYYY-MM-DDTHH:mm:ss')
-              ? newDayjs().add(10, 'minute')
+                dayjsTz().startOf('hour').format('YYYY-MM-DDTHH:mm:ss')
+              ? dayjsTz().add(10, 'minute')
               : getDate
           }
           {...(set?.content ? { set: JSON.parse(set.content) } : {})}
@@ -1170,7 +1172,7 @@ const CalendarItem: FC<{
         </div>
         {showTime && (
           <div className="text-textColor/50 text-[12px] whitespace-nowrap flex items-center">
-            {newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
+            {utcToTz(post.publishDate).format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
           </div>
         )}
       </div>

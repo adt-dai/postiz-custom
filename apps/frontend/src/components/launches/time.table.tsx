@@ -15,7 +15,10 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { sortBy } from 'lodash';
 import { usePreventWindowUnload } from '@gitroom/react/helpers/use.prevent.window.unload';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  newDayjs,
+  getTimezone,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import clsx from 'clsx';
 import {
   TrashIcon,
@@ -92,7 +95,7 @@ export const TimeTable: FC<{
         .add(hour, 'hours')
         .add(minute, 'minutes')
         .diff(newDayjs().utc().startOf('day'), 'minutes') -
-      dayjs.tz().utcOffset();
+      dayjs.tz(undefined, getTimezone()).utcOffset();
     setCurrentTimes((prev) => [
       ...prev,
       {
@@ -109,7 +112,7 @@ export const TimeTable: FC<{
           .utc()
           .startOf('day')
           .add(time, 'minutes')
-          .local()
+          .tz(getTimezone())
           .format('HH:mm'),
       })),
       (p) => p.value
