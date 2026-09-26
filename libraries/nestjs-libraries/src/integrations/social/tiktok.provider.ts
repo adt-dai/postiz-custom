@@ -591,7 +591,15 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
           privacy_level: firstPost.settings.privacy_level || 'SELF_ONLY',
           ...(isPhoto
             ? {}
-            : { disable_duet: !this.assetBoolean(firstPost.settings.duet) }),
+            : {
+                disable_duet: !this.assetBoolean(firstPost.settings.duet),
+                ...(firstPost?.media?.[0]?.thumbnailTimestamp
+                  ? {
+                      video_cover_timestamp_ms:
+                        firstPost.media[0].thumbnailTimestamp,
+                    }
+                  : {}),
+              }),
           disable_comment: !this.assetBoolean(firstPost.settings.comment),
           ...(isPhoto
             ? {}
